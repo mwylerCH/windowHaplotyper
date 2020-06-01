@@ -1,0 +1,131 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use English;
+
+
+### Input
+# test if two arguments are given
+if ($#ARGV != 1 ) {
+	print "usage: $0 sequence.aln windowSize\n\n";
+	print "\tsequence.aln\tmultiple sequence alignment in fasta format\n\twindowSize\tNUM of basepair used\n";
+	print "\n\n\tAuthor: Michele Wyler, 2020, Zürich\n\tFurther Informations at https://github.com/mwylerCH\n";
+	exit;
+}
+
+my $filename = $ARGV[0];
+my $WindowSize = $ARGV[1]; 
+my $nucleotide = 'A|T|C|G';  	# ANCHE ALTRE LETTERE; # SEMPRE ANCORA ROWS CON SOLO '------'
+my $portionSeq = '0.5';
+
+
+
+### SUB -------------------------------------------------------------
+
+# subroutine for numeric sorting
+sub by_number { $a <=> $b}
+
+# subroutine that counts uniq
+sub uniqCount {
+	do { my %seen; grep { !$seen{$_}++ } @_ };
+}
+
+
+## SOFTWARE ---------------------------------------------------------
+
+### read in file ---------
+open(FH, '<', $filename) or die $!;
+
+## read input sequence inside an array
+my @sequences;
+while(<FH>){
+	# only sequence without header
+	if ($_ =~ /\A[^>]/) {
+		my $UpperCase = uc($_);
+		push(@sequences, $UpperCase); 
+		}
+}
+close(FH);
+
+
+
+### test if sequence are aligned (i.e. have same length) -------------
+# get individual length
+my @seq_len;
+foreach ( @sequences ) {
+	my $len = length($_);
+	push(@seq_len, $len);
+}
+
+# length of uniq value
+my $length_diff = uniqCount(@seq_len);
+
+# test if all lengths are the same
+if ($length_diff != 1) {
+    print "Sequence length differs:\n\tTry to align $filename with muscle\n";
+    exit;
+}
+
+
+### START --------- 
+# get position of first nucleotide after "-"
+my @inizio;
+foreach ( @sequences ) {
+	if ($_ =~ /$nucleotide/) {
+		my $pos = length($PREMATCH);
+		# add to array
+		push(@inizio, $pos+1)
+		}
+}
+
+## sort array containing necleotide start
+@inizio = sort by_number @inizio;
+
+# median value START (50% of sequence need to be present)
+my $cutting_head = $inizio[ ($#inizio + 1) * $portionSeq ];
+
+
+
+### END --------- 
+# get position of last nucleotide 
+my @fine;
+foreach ( @sequences ) {
+	if ($_ =~ /-*$/g) {
+		my $EndPos = length($MATCH);
+		# add to array
+		push(@fine, $EndPos)
+		}
+}
+
+## sort array containing necleotide start
+@fine = sort by_number @fine;
+
+# remove median value from total length of input ($seq_len[1])
+my $cutting_tail = $seq_len[1] - $fine[ ($#fine + 1) * $portionSeq ];
+
+### WINDOWING --------- 
+my $StartWin;
+my $lastPosition = $cutting_tail - $WindowSize;
+
+for ( $StartWin = $cutting_head; $StartWin <= $lastPosition ; $StartWin++ ) {
+	my @WindowSegments;
+	foreach(@sequences){
+		my $segment = substr($_, $StartWin, $WindowSize);
+		push(@WindowSegments, $segment);			
+	}
+	# count unique fragments
+	my $UniqSegments = uniqCount(@WindowSegments);
+
+	# STDOUT
+	my $EndWin = $StartWin + $WindowSize;
+	print "$StartWin\t$EndWin\t$UniqSegments\n";
+}
+
+
+
+
+
+
+
+
