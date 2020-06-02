@@ -16,7 +16,7 @@ if ($#ARGV != 1 ) {
 
 my $filename = $ARGV[0];
 my $WindowSize = $ARGV[1]; 
-my $nucleotide = 'A|T|C|G';  	# ANCHE ALTRE LETTERE; # SEMPRE ANCORA ROWS CON SOLO '------'
+my $nucleotide = 'A|T|C|G';  	
 my $portionSeq = '0.5';
 
 
@@ -102,7 +102,8 @@ foreach ( @sequences ) {
 @fine = sort by_number @fine;
 
 # remove median value from total length of input ($seq_len[1])
-my $cutting_tail = $seq_len[1] - $fine[ ($#fine + 1) * $portionSeq ];
+my $cutting_tail = $seq_len[1] - $fine[ ($#fine + 1) * (1 - $portionSeq) ];
+
 
 ### WINDOWING --------- 
 my $StartWin;
@@ -112,7 +113,10 @@ for ( $StartWin = $cutting_head; $StartWin <= $lastPosition ; $StartWin++ ) {
 	my @WindowSegments;
 	foreach(@sequences){
 		my $segment = substr($_, $StartWin, $WindowSize);
-		push(@WindowSegments, $segment);			
+		# avoid to count empty sequence (only '----')
+		if ($segment !~ /^-*$/){
+			push(@WindowSegments, $segment);			
+		}
 	}
 	# count unique fragments
 	my $UniqSegments = uniqCount(@WindowSegments);
@@ -121,11 +125,3 @@ for ( $StartWin = $cutting_head; $StartWin <= $lastPosition ; $StartWin++ ) {
 	my $EndWin = $StartWin + $WindowSize;
 	print "$StartWin\t$EndWin\t$UniqSegments\n";
 }
-
-
-
-
-
-
-
-
