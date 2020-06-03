@@ -17,7 +17,7 @@ if ($#ARGV != 1 ) {
 my $filename = $ARGV[0];
 my $WindowSize = $ARGV[1]; 
 my $nucleotide = 'A|T|C|G';  	
-my $portionSeq = '0.5';
+my $portionSeq = '0.8';
 
 
 
@@ -102,7 +102,7 @@ foreach ( @sequences ) {
 @fine = sort by_number @fine;
 
 # remove median value from total length of input ($seq_len[1])
-my $cutting_tail = $seq_len[1] - $fine[ ($#fine + 1) * (1 - $portionSeq) ];
+my $cutting_tail = $seq_len[1] - $fine[ ($#fine + 1) * ($portionSeq) ];
 
 
 ### WINDOWING --------- 
