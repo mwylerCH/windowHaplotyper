@@ -10,7 +10,7 @@ use English;
 if ($#ARGV != 1 ) {
 	print "usage: $0 sequence.aln windowSize\n\n";
 	print "\tsequence.aln\tmultiple sequence alignment in fasta format\n\twindowSize\tNUM of basepair used\n";
-	print "\n\n\tAuthor: Michele Wyler, 2020, Zürich\n\tFurther Informations at https://github.com/mwylerCH\n";
+	print "\n\n\tAuthor: Michele Wyler, 2020, Zürich\n\tFurther Informations at https://github.com/mwylerCH/windowHaplotyper\n";
 	exit;
 }
 
@@ -34,26 +34,55 @@ sub uniqCount {
 
 ## SOFTWARE ---------------------------------------------------------
 
-### read in file ---------
+### READ FASTA ---------
 open(FH, '<', $filename) or die $!;
 
 ## read input sequence inside an array
 my @sequences;
+my $gene;
+my $number_entry;
 while(<FH>){
-	# only sequence without header
-	if ($_ =~ /\A[^>]/) {
-		my $UpperCase = uc($_);
-		push(@sequences, $UpperCase); 
+	# header
+	if ($_ =~ m/\A>/){
+		# test if it's the first one (count)
+		$number_entry = @sequences;
+		if ($number_entry > 0){
+			$gene = $gene . "\n";
+			push(@sequences, $gene);
+			$gene = undef;
+		} else {
+		push(@sequences, "FIRST\n"); # first sequence in input
 		}
+	}
+	# sequence
+	elsif ($_ =~ /\A[^>]/) {
+		chomp;
+		$_ =~ s/\n//g ;
+		my $UpperCase = uc($_);
+		# test if gene is empty or not
+		if ($gene) {
+		$gene = $gene . uc($_); 
+		} else {
+		$gene = uc($_); 
+		}
+	}	
 }
+	# add last sequence
+	my $lastSeq = $gene . "\n";
+	push(@sequences, $gene);
+
 close(FH);
 
+# remove first element of array
+shift(@sequences);
 
 
-### test if sequence are aligned (i.e. have same length) -------------
+
+### SEQ LENGTH -------------
 # get individual length
 my @seq_len;
 foreach ( @sequences ) {
+	chomp;
 	my $len = length($_);
 	push(@seq_len, $len);
 }
@@ -125,3 +154,4 @@ for ( $StartWin = $cutting_head; $StartWin <= $lastPosition ; $StartWin++ ) {
 	my $EndWin = $StartWin + $WindowSize;
 	print "$StartWin\t$EndWin\t$UniqSegments\n";
 }
+
